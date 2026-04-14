@@ -27,32 +27,43 @@ function Server_AdvanceTurn_Start(game, addNewOrder)
     end
 end
 
+local function snapshotTerritories(standing, ownerID)
+    local terrIDs = {}
+    for terrID, ts in pairs(standing.Territories) do
+        if ts.OwnerPlayerID == ownerID then
+            terrIDs[#terrIDs + 1] = terrID
+        end
+    end
+    return terrIDs
+end
+
 function Server_AdvanceTurn_Order(game, order, orderResult, skipThisOrder, addNewOrder)
     if order.proxyType ~= 'GameOrderAttackTransfer' then return end
     if not orderResult.IsAttack then return end
-    if not orderResult.IsSuccessful then return end
 
     local standing   = game.ServerGame.LatestTurnStanding
     local attackerID = order.PlayerID
     local defenderID = standing.Territories[order.To].OwnerPlayerID
 
     if defenderID == WL.PlayerID.Neutral then return end
-    if not _KGL_wasAlive[defenderID] then return end
 
-    -- Snapshot all territories owned by the defender right now,
-    -- before this attack is applied and before Warzone neutralizes them.
-    -- We overwrite on each successful attack so the last kill counts.
-    local terrIDs = {}
-    for terrID, ts in pairs(standing.Territories) do
-        if ts.OwnerPlayerID == defenderID then
-            terrIDs[#terrIDs + 1] = terrID
-        end
+    if orderResult.IsSuccessful then
+        -- Successful attack: record attacker as killer of defender
+        if not _KGL_wasAlive[defenderID] then return end
+        _KGL_transfers[defenderID] = {
+            killerID = attackerID,
+            terrIDs  = snapshotTerritories(standing, defenderID),
+        }
+
+    else
+        -- Failed attack: record defender as potential killer of attacker.
+        -- We only act on this in _End if the attacker actually ends up eliminated.
+        if not _KGL_wasAlive[attackerID] then return end
+        _KGL_transfers[attackerID] = {
+            killerID = defenderID,
+            terrIDs  = snapshotTerritories(standing, attackerID),
+        }
     end
-
-    _KGL_transfers[defenderID] = {
-        killerID = attackerID,
-        terrIDs  = terrIDs,
-    }
 end
 
 function Server_AdvanceTurn_End(game, addNewOrder)
