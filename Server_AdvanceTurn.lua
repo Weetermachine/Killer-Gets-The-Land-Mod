@@ -86,22 +86,29 @@ function Server_AdvanceTurn_End(game, addNewOrder)
         transfer.killerID = killerID
         if #transfer.terrIDs == 0 then goto continue end
 
+        -- Only transfer territories that are still neutral at end of turn.
+        -- If another player captured one, leave it with them.
+        local standing = game.ServerGame.LatestTurnStanding
         local mods = {}
         for _, terrID in ipairs(transfer.terrIDs) do
-            local mod = WL.TerritoryModification.Create(terrID)
-            mod.SetOwnerOpt = transfer.killerID
-            mods[#mods + 1] = mod
+            local ts = standing.Territories[terrID]
+            if ts.IsNeutral or ts.OwnerPlayerID == playerID then
+                local mod = WL.TerritoryModification.Create(terrID)
+                mod.SetOwnerOpt = killerID
+                mods[#mods + 1] = mod
+            end
         end
 
+        if #mods == 0 then goto continue end
+
         local loserName  = players[playerID].DisplayName(nil, false)
-        local killerName = players[transfer.killerID].DisplayName(nil, false)
-        local msg = loserName .. ' was eliminated. Their '
-                    .. #transfer.terrIDs
-                    .. ' territories have been transferred to '
+        local killerName = players[killerID].DisplayName(nil, false)
+        local msg = loserName .. ' was eliminated. '
+                    .. #mods .. ' of their territories have been transferred to '
                     .. killerName .. '.'
 
         addNewOrder(WL.GameOrderEvent.Create(
-            transfer.killerID,
+            killerID,
             msg,
             nil,
             mods,
