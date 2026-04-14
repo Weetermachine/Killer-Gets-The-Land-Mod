@@ -1,0 +1,18 @@
+Killer Gets the Land
+====================
+When a player is eliminated, all their remaining territories are immediately transferred to whoever killed them, instead of going neutral. This rewards aggressive play and makes eliminating opponents even more impactful — you don't just remove a threat, you absorb their empire.
+
+How it works
+------------
+The "killer" is whoever last successfully attacked the eliminated player during the turn they were eliminated. At the end of that turn, any territories the eliminated player still owns are transferred to the killer.
+
+If no killer is recorded — for example if the player was eliminated by attacking a blockade (neutral territory) or surrendered — their territories go neutral as normal.
+
+This mod works independently of teams. Even in a team game, the killer always receives the territories personally, regardless of which team they're on.
+
+Tips
+----
+- Coordinating with teammates to ensure the killing blow goes to whoever needs the territories most can be a powerful strategy.
+- Be careful about overextending to get the kill — inheriting a large empire can be hard to defend if you've weakened yourself in the process.
+- Pairs naturally with "Killer Gets the Cards" — enable both for a full spoils-of-war experience where eliminating a player rewards you with everything they had.
+- In games with many players, eliminating someone early can snowball your position dramatically.
