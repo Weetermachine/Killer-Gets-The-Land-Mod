@@ -10,6 +10,16 @@ If no killer is recorded — for example if the player was eliminated by attacki
 
 This mod works independently of teams. Even in a team game, the killer always receives the territories personally, regardless of which team they're on.
 
+Important: Commanders required for full effect
+----------------------------------------------
+In a standard game without commanders, a player is only eliminated when their very last territory is captured — meaning there are no remaining territories to transfer. This mod has its full effect only when players can be eliminated while still holding territories.
+
+To get the most out of this mod, enable one of the following:
+- Commanders: a player is eliminated the moment their commander dies, regardless of how many territories they still hold. All those territories transfer to the killer.
+- Any other mod or game mode that allows elimination before a player loses all their territories.
+
+Without commanders (or an equivalent elimination mechanic), this mod will rarely trigger and may appear to do nothing.
+
 Tips
 ----
 - Coordinating with teammates to ensure the killing blow goes to whoever needs the territories most can be a powerful strategy.

@@ -13,4 +13,8 @@ function Client_PresentConfigureUI(rootParent)
                  .. '• If no killer is recorded (e.g. blockade, surrender), territories go neutral as normal.\n'
                  .. '• Works independently of teams — the killer always gets the land.\n'
                  .. '• Pairs well with "Killer Gets the Cards" for a full spoils-of-war experience.')
+
+    UI.CreateLabel(vert)
+        .SetText('⚠ Recommended: enable Commanders so players can be eliminated while still holding territories. Without commanders (or another alternate elimination method), this mod will rarely trigger.')
+        .SetColor('#FF8C00')
 end
