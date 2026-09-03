@@ -66,67 +66,74 @@ function Server_AdvanceTurn_Order(game, order, orderResult, skipThisOrder, addNe
     end
 end
 
+-- Resolves one pending transfer at end of turn. Returns early (no-op)
+-- if the player wasn't actually eliminated or there is nothing to move.
+-- (Uses early returns rather than goto: Warzone's Lua interpreter rejects
+-- a goto that jumps past a local declaration, even to a label at the end
+-- of the block.)
+local function resolveTransfer(game, addNewOrder, players, playerID, transfer)
+    local player  = players[playerID]
+    local nowElim = (player.State == WL.GamePlayerState.Eliminated)
+
+    -- Only act if the player was actually eliminated this turn
+    if not nowElim then return end
+
+    -- Follow the kill chain: if the killer was also eliminated this turn,
+    -- their killer inherits the transfer, and so on up the chain.
+    -- (Circular chains are impossible since eliminated players stop acting.)
+    local killerID = transfer.killerID
+    while true do
+        local killerPlayer = players[killerID]
+        if killerPlayer.State ~= WL.GamePlayerState.Eliminated then
+            break  -- found an alive killer
+        end
+        local killerTransfer = _KGL_transfers[killerID]
+        if killerTransfer == nil then
+            killerID = nil  -- no one killed this player, territories go neutral
+            break
+        end
+        killerID = killerTransfer.killerID
+    end
+
+    if killerID == nil then return end
+    transfer.killerID = killerID
+    if #transfer.terrIDs == 0 then return end
+
+    -- Only transfer territories that are still neutral at end of turn.
+    -- If another player captured one, leave it with them.
+    local standing = game.ServerGame.LatestTurnStanding
+    local mods = {}
+    for _, terrID in ipairs(transfer.terrIDs) do
+        local ts = standing.Territories[terrID]
+        if ts.IsNeutral or ts.OwnerPlayerID == playerID then
+            local mod = WL.TerritoryModification.Create(terrID)
+            mod.SetOwnerOpt = killerID
+            mods[#mods + 1] = mod
+        end
+    end
+
+    if #mods == 0 then return end
+
+    local loserName  = players[playerID].DisplayName(nil, false)
+    local killerName = players[killerID].DisplayName(nil, false)
+    local msg = loserName .. ' was eliminated. '
+                .. #mods .. ' of their territories have been transferred to '
+                .. killerName .. '.'
+
+    addNewOrder(WL.GameOrderEvent.Create(
+        killerID,
+        msg,
+        nil,
+        mods,
+        nil,
+        nil
+    ))
+end
+
 function Server_AdvanceTurn_End(game, addNewOrder)
     local players = game.Game.Players
 
     for playerID, transfer in pairs(_KGL_transfers) do
-        local player  = players[playerID]
-        local nowElim = (player.State == WL.GamePlayerState.Eliminated)
-
-        -- Only act if the player was actually eliminated this turn
-        if not nowElim then goto continue end
-
-        -- Follow the kill chain: if the killer was also eliminated this turn,
-        -- their killer inherits the transfer, and so on up the chain.
-        -- (Circular chains are impossible since eliminated players stop acting.)
-        local killerID = transfer.killerID
-        while true do
-            local killerPlayer = players[killerID]
-            if killerPlayer.State ~= WL.GamePlayerState.Eliminated then
-                break  -- found an alive killer
-            end
-            local killerTransfer = _KGL_transfers[killerID]
-            if killerTransfer == nil then
-                killerID = nil  -- no one killed this player, territories go neutral
-                break
-            end
-            killerID = killerTransfer.killerID
-        end
-
-        if killerID == nil then goto continue end
-        transfer.killerID = killerID
-        if #transfer.terrIDs == 0 then goto continue end
-
-        -- Only transfer territories that are still neutral at end of turn.
-        -- If another player captured one, leave it with them.
-        local standing = game.ServerGame.LatestTurnStanding
-        local mods = {}
-        for _, terrID in ipairs(transfer.terrIDs) do
-            local ts = standing.Territories[terrID]
-            if ts.IsNeutral or ts.OwnerPlayerID == playerID then
-                local mod = WL.TerritoryModification.Create(terrID)
-                mod.SetOwnerOpt = killerID
-                mods[#mods + 1] = mod
-            end
-        end
-
-        if #mods == 0 then goto continue end
-
-        local loserName  = players[playerID].DisplayName(nil, false)
-        local killerName = players[killerID].DisplayName(nil, false)
-        local msg = loserName .. ' was eliminated. '
-                    .. #mods .. ' of their territories have been transferred to '
-                    .. killerName .. '.'
-
-        addNewOrder(WL.GameOrderEvent.Create(
-            killerID,
-            msg,
-            nil,
-            mods,
-            nil,
-            nil
-        ))
-
-        ::continue::
+        resolveTransfer(game, addNewOrder, players, playerID, transfer)
     end
 end
